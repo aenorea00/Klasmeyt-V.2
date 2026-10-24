@@ -11,6 +11,7 @@ import com.example.klasmeyt.ui.screens.FeedScreen
 import com.example.klasmeyt.ui.screens.LoginScreen
 import com.example.klasmeyt.ui.screens.PostDetailScreen
 import com.example.klasmeyt.ui.screens.ProfileScreen
+import com.example.klasmeyt.ui.screens.RegisterScreen
 import com.example.klasmeyt.viewmodel.FeedViewModel
 
 @Composable
@@ -25,10 +26,25 @@ fun AppNavGraph(
     ) {
         composable(route = Screen.Login.route) {
             LoginScreen(
-                onLoginSuccess = {
+                onLoginSuccess = { user ->
+                    feedViewModel.updateCurrentUser(user)
                     navController.navigate(Screen.Feed.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
+                },
+                onNavigateToRegister = {
+                    navController.navigate("register")
+                }
+            )
+        }
+
+        composable(route = "register") {
+            RegisterScreen(
+                onRegistrationSuccess = {
+                    navController.popBackStack()
+                },
+                onBackToLogin = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -43,27 +59,29 @@ fun AppNavGraph(
                     navController.navigate(Screen.PostDetail.createRoute(postId))
                 },
                 onNavigateToProfile = {
-                    navController.navigate(Screen.Profile.route)
+                    navController.navigate("profile")
+                },
+                onNavigateToUserProfile = { studentNumber ->
+                    navController.navigate("profile?studentNumber=$studentNumber")
                 }
             )
         }
 
-        composable(route = Screen.Profile.route) {
+        composable(
+            route = "profile?studentNumber={studentNumber}",
+            arguments = listOf(navArgument("studentNumber") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            })
+        ) { backStackEntry ->
+            val targetStudentNumber = backStackEntry.arguments?.getString("studentNumber")
             ProfileScreen(
+                targetStudentNumber = targetStudentNumber,
                 viewModel = feedViewModel,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToFeed = {
-                    navController.navigate(Screen.Feed.route) {
-                        popUpTo(Screen.Feed.route) { inclusive = true }
-                    }
-                },
-                onNavigateToCreate = {
-                    navController.navigate(Screen.CreatePost.route)
-                },
-                onNavigateToDetail = { postId ->
-                    navController.navigate(Screen.PostDetail.createRoute(postId))
-                },
                 onLogout = {
+                    feedViewModel.updateCurrentUser(null)
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }

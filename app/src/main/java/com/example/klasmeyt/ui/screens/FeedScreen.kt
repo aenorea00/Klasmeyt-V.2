@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.filled.AddBox
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Campaign
@@ -21,10 +22,10 @@ import androidx.compose.material.icons.filled.TravelExplore
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,7 +48,8 @@ fun FeedScreen(
     viewModel: FeedViewModel,
     onNavigateToCreate: () -> Unit,
     onNavigateToDetail: (String) -> Unit,
-    onNavigateToProfile: () -> Unit
+    onNavigateToProfile: () -> Unit,
+    onNavigateToUserProfile: (String) -> Unit
 ) {
     val posts by viewModel.posts.collectAsState()
 
@@ -91,9 +93,7 @@ fun FeedScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
         },
         bottomBar = {
@@ -112,10 +112,9 @@ fun FeedScreen(
                     onClick = onNavigateToCreate,
                     icon = { Icon(Icons.Default.AddBox, contentDescription = "Post", tint = TextSecondary) }
                 )
-                // Profile Item:
                 NavigationBarItem(
                     selected = false,
-                    onClick = onNavigateToProfile, // <-- CHANGE THIS from { } to onNavigateToProfile
+                    onClick = onNavigateToProfile,
                     icon = { Icon(Icons.Default.Person, contentDescription = "Profile", tint = TextSecondary) }
                 )
             }
@@ -138,14 +137,19 @@ fun FeedScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
+                    .padding(paddingValues),
+                contentPadding = PaddingValues(bottom = 24.dp)
             ) {
                 items(posts, key = { it.id }) { post ->
                     InstagramPostCard(
                         post = post,
-                        onClick = { onNavigateToDetail(post.id) }
+                        onClick = { onNavigateToDetail(post.id) },
+                        onAuthorClick = { studentNumber -> onNavigateToUserProfile(studentNumber) },
+                        onLikeClick = { currentlyLiked ->
+                            viewModel.toggleLike(post.id, currentlyLiked)
+                        }
                     )
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
                 }
             }
         }
@@ -155,29 +159,17 @@ fun FeedScreen(
 @Composable
 fun InstagramPostCard(
     post: CampusPost,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onAuthorClick: (String) -> Unit,
+    onLikeClick: (Boolean) -> Unit
 ) {
     var isLiked by remember { mutableStateOf(false) }
-    var isSaved by remember { mutableStateOf(false) }
-    var likesCount by remember { mutableStateOf(24) }
 
     val (gradientColors, categoryIcon) = when (post.category.lowercase()) {
-        "announcements" -> Pair(
-            listOf(Color(0xFF0C2340), Color(0xFF1D4E89)),
-            Icons.Default.Campaign
-        )
-        "cs/it" -> Pair(
-            listOf(Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)),
-            Icons.Default.Computer
-        )
-        "lost & found" -> Pair(
-            listOf(Color(0xFF8A2387), Color(0xFFE94057), Color(0xFFF27121)),
-            Icons.Default.TravelExplore
-        )
-        else -> Pair(
-            listOf(Color(0xFF141E30), Color(0xFF243B55)),
-            Icons.Default.Event
-        )
+        "announcements" -> Pair(listOf(Color(0xFF0C2340), Color(0xFF1D4E89)), Icons.Default.Campaign)
+        "cs/it" -> Pair(listOf(Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)), Icons.Default.Computer)
+        "lost & found" -> Pair(listOf(Color(0xFF8A2387), Color(0xFFE94057), Color(0xFFF27121)), Icons.Default.TravelExplore)
+        else -> Pair(listOf(Color(0xFF141E30), Color(0xFF243B55)), Icons.Default.Event)
     }
 
     Column(
@@ -195,41 +187,25 @@ fun InstagramPostCard(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.clickable {
+                    if (post.authorStudentNumber.isNotBlank()) {
+                        onAuthorClick(post.authorStudentNumber)
+                    }
+                }
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.sweepGradient(
-                                listOf(AdUGold, Color(0xFFE94057), AdUGold)
-                            )
-                        )
-                        .padding(2.dp),
-                    contentAlignment = Alignment.Center
+                Surface(
+                    shape = CircleShape,
+                    color = AdUNavyPrimary,
+                    modifier = Modifier.size(40.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(CircleShape)
-                            .background(Color.White)
-                            .padding(2.dp)
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = AdUNavyPrimary,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = post.author.firstOrNull()?.uppercase() ?: "A",
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp
-                                )
-                            }
-                        }
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = post.author.firstOrNull()?.uppercase() ?: "A",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
                     }
                 }
 
@@ -275,12 +251,12 @@ fun InstagramPostCard(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(230.dp)
+                .height(200.dp)
                 .padding(horizontal = 12.dp)
                 .clip(RoundedCornerShape(18.dp))
                 .background(Brush.linearGradient(gradientColors))
                 .clickable { onClick() }
-                .padding(20.dp),
+                .padding(18.dp),
             contentAlignment = Alignment.CenterStart
         ) {
             Column(
@@ -332,7 +308,7 @@ fun InstagramPostCard(
                         color = Color.White,
                         lineHeight = 24.sp
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = post.content,
                         fontSize = 13.sp,
@@ -350,17 +326,18 @@ fun InstagramPostCard(
                 )
             }
         }
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .padding(horizontal = 8.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = {
+                    onLikeClick(isLiked)
                     isLiked = !isLiked
-                    likesCount += if (isLiked) 1 else -1
                 }) {
                     Icon(
                         imageVector = if (isLiked) Icons.Default.Favorite else Icons.Outlined.FavoriteBorder,
@@ -379,7 +356,7 @@ fun InstagramPostCard(
                 }
                 IconButton(onClick = { }) {
                     Icon(
-                        imageVector = Icons.Outlined.Send,
+                        imageVector = Icons.AutoMirrored.Outlined.Send,
                         contentDescription = "Share",
                         tint = TextPrimary,
                         modifier = Modifier.size(22.dp)
@@ -387,11 +364,11 @@ fun InstagramPostCard(
                 }
             }
 
-            IconButton(onClick = { isSaved = !isSaved }) {
+            IconButton(onClick = { }) {
                 Icon(
-                    imageVector = if (isSaved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+                    imageVector = Icons.Outlined.BookmarkBorder,
                     contentDescription = "Save",
-                    tint = if (isSaved) AdUNavyPrimary else TextPrimary,
+                    tint = TextPrimary,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -401,7 +378,7 @@ fun InstagramPostCard(
             modifier = Modifier.padding(horizontal = 14.dp)
         ) {
             Text(
-                text = "$likesCount likes",
+                text = "${post.likesCount} ${if (post.likesCount == 1) "like" else "likes"}",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary
@@ -425,7 +402,7 @@ fun InstagramPostCard(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "View all comments",
+                text = if (post.commentsCount > 0) "View all ${post.commentsCount} comments" else "Leave a comment...",
                 fontSize = 12.sp,
                 color = TextSecondary,
                 modifier = Modifier.clickable { onClick() }

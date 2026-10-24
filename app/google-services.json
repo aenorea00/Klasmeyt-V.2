@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "348728956895",
+    "project_id": "klasmeyt-8e0b7",
+    "storage_bucket": "klasmeyt-8e0b7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:348728956895:android:584238b909c8b37ab8d66a",
+        "android_client_info": {
+          "package_name": "com.example.klasmeyt"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB34tZtEbYw4_nZl4d7Qn89JrRQrlOgcgE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
